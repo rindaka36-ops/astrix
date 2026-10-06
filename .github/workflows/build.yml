@@ -1,0 +1,32 @@
+name: Build JAR
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Unzip
+        run: |
+          mkdir src_extracted
+          unzip -q SKIBIDI-MERGED-SRCv13-full.zip -d src_extracted
+      - name: Build
+        run: |
+          DIR=$(dirname "$(find src_extracted -maxdepth 3 \( -name pom.xml -o -name build.gradle -o -name build.gradle.kts \) | head -n1)")
+          cd "$DIR"
+          if [ -f pom.xml ]; then
+            mvn clean package -DskipTests
+          elif [ -f gradlew ]; then
+            chmod +x gradlew && ./gradlew build -x test
+          else
+            gradle build -x test
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar
+          path: |
+            src_extracted/**/target/*.jar
+            src_extracted/**/build/libs/*.jar
